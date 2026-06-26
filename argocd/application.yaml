@@ -1,0 +1,55 @@
+# Bootstrap GitOps: apply this file to register the app-of-apps with ArgoCD
+# Repo: https://github.com/laxmanperi1/express-api.git
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: express-api
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: express-api-gitops
+spec:
+  description: Express API GitOps project
+  sourceRepos:
+    - https://github.com/laxmanperi1/express-api.git
+    - https://prometheus-community.github.io/helm-charts
+  destinations:
+    - namespace: express-api
+      server: https://kubernetes.default.svc
+    - namespace: express-api-prod
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: cert-manager.io
+      kind: ClusterIssuer
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: express-api-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: express-api-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/laxmanperi1/express-api.git
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
