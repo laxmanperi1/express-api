@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: monitoring-config
   namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: express-api-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
@@ -10,7 +12,7 @@ metadata:
 spec:
   project: express-api
   source:
-    repoURL: __GIT_REPO_URL__
+    repoURL: https://github.com/laxmanperi1/express-api.git
     targetRevision: main
     path: monitoring/manifests
   destination:
@@ -28,3 +30,4 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+  revisionHistoryLimit: 5
