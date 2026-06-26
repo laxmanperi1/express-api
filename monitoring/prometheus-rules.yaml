@@ -1,0 +1,26 @@
+        - alert: ExpressApiDown
+          expr: |
+            up{namespace="express-api", service="express-api"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            app: express-api
+          annotations:
+            summary: "Express-api target is down"
+            description: "Prometheus cannot scrape express-api metrics."
+
+        - alert: ExpressApiHighMemory
+          expr: |
+            sum by (pod) (
+              process_resident_memory_bytes{namespace="express-api"}
+            ) > 200000000
+          for: 2m
+          labels:
+            severity: warning
+            app: express-api
+          annotations:
+            summary: "High memory usage on express-api pod {{ $labels.pod }}"
+            description: >-
+              Pod {{ $labels.pod }} memory usage exceeds 200MB for more than 2 minutes.
+
+        - alert: ExpressApiHighCPU

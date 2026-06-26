@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: express-api
+  namespace: express-api
+  labels:
+    app: express-api
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: express-api
+  namespaceSelector:
+    matchNames:
+      - express-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

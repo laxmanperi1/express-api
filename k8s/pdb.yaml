@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: express-api
+  namespace: express-api
+  labels:
+    app: express-api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: express-api
