@@ -5,8 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "${SCRIPT_DIR}")"
 IMAGE_TAG="${IMAGE_TAG:-1.0.0}"
 GIT_REPO_URL="${GIT_REPO_URL:-}"
+LOCAL_DEV="${LOCAL_DEV:-0}"
 ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
 ARGOCD_VERSION="${ARGOCD_VERSION:-v2.13.2}"
+GIT_BRANCH="${GIT_BRANCH:-main}"
 
 usage() {
   cat <<EOF
@@ -19,6 +21,8 @@ Required:
                  Example: https://github.com/your-user/express-api.git
 
 Optional env vars:
+  LOCAL_DEV=1            Use minikube mount + file:// repo (no GitHub needed)
+  GIT_BRANCH             Git branch to sync (default: main)
   IMAGE_TAG              Docker image tag (default: 1.0.0)
   ARGOCD_NAMESPACE       ArgoCD namespace (default: argocd)
   ARGOCD_VERSION           ArgoCD version tag (default: v2.13.2)
@@ -30,13 +34,36 @@ Example:
 EOF
 }
 
-if [[ -z "${GIT_REPO_URL}" ]]; then
+if [[ -z "${GIT_REPO_URL}" && "${LOCAL_DEV}" != "1" ]]; then
   usage
   exit 1
 fi
 
+if [[ "${LOCAL_DEV}" == "1" ]]; then
+  GIT_REPO_URL="file:///mnt/express-api"
+  GIT_BRANCH="$(git -C "${ROOT_DIR}" branch --show-current)"
+  echo "==> Local dev mode: using ${GIT_REPO_URL} (branch: ${GIT_BRANCH})"
+fi
+
 render() {
-  sed "s|__GIT_REPO_URL__|${GIT_REPO_URL}|g" "$1"
+  sed -e "s|__GIT_REPO_URL__|${GIT_REPO_URL}|g" -e "s|main|${GIT_BRANCH}|g" "$1"
+}
+
+setup_local_repo_mount() {
+  echo "==> Mounting local repo into minikube..."
+  pkill -f "minikube mount ${ROOT_DIR}:/mnt/express-api" 2>/dev/null || true
+  minikube mount "${ROOT_DIR}:/mnt/express-api" &
+  MOUNT_PID=$!
+  sleep 5
+
+  echo "==> Patching ArgoCD repo-server to access mounted repo..."
+  kubectl patch deployment argocd-repo-server -n "${ARGOCD_NAMESPACE}" --type=json -p='[
+    {"op":"add","path":"/spec/template/spec/volumes/-","value":{"name":"local-repo","hostPath":{"path":"/mnt/express-api","type":"Directory"}}},
+    {"op":"add","path":"/spec/template/spec/containers/0/volumeMounts/-","value":{"name":"local-repo","mountPath":"/mnt/express-api","readOnly":true}}
+  ]' 2>/dev/null || true
+
+  kubectl rollout status deployment/argocd-repo-server -n "${ARGOCD_NAMESPACE}" --timeout=120s
+  echo "${MOUNT_PID}" > /tmp/minikube-mount-express-api.pid
 }
 
 echo "==> Installing cert-manager..."
@@ -62,11 +89,17 @@ kubectl create namespace "${ARGOCD_NAMESPACE}" --dry-run=client -o yaml | kubect
 kubectl apply -n "${ARGOCD_NAMESPACE}" -f "https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml"
 kubectl wait --for=condition=Available deployment/argocd-server -n "${ARGOCD_NAMESPACE}" --timeout=300s
 
+if [[ "${LOCAL_DEV}" == "1" ]]; then
+  setup_local_repo_mount
+fi
+
 echo "==> Applying ArgoCD project..."
 render "${ROOT_DIR}/argocd/project.yaml" | kubectl apply -f -
 
 echo "==> Registering Git repository with ArgoCD..."
-if [[ "${GIT_REPO_URL}" == git@* ]]; then
+if [[ "${GIT_REPO_URL}" == file://* ]]; then
+  echo "Using local file repository (no remote secret needed)."
+elif [[ "${GIT_REPO_URL}" == git@* ]]; then
   echo "SSH repo URL detected. Ensure your SSH key is added to ArgoCD:"
   echo "  argocd repo add ${GIT_REPO_URL} --ssh-private-key-path ~/.ssh/id_rsa"
 else
@@ -122,3 +155,4 @@ echo "Applications:"
 echo "  kubectl get applications -n ${ARGOCD_NAMESPACE}"
 echo ""
 echo "IMPORTANT: Push this repo to ${GIT_REPO_URL} before expecting a successful sync."
+fi

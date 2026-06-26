@@ -9,6 +9,7 @@ spec:
   description: Express API platform project
   sourceRepos:
     - __GIT_REPO_URL__
+    - file:///mnt/express-api
     - https://prometheus-community.github.io/helm-charts
   destinations:
     - namespace: express-api
