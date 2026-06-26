@@ -60,4 +60,7 @@ jobs:
           sudo mv kubeconform /usr/local/bin/
 
       - name: Validate Kubernetes manifests
-        run: kubectl kustomize k8s/ | kubeconform -strict -summary -
+        run: |
+          kubectl kustomize deploy/overlays/minikube | kubeconform -strict -summary -
+          kubectl kustomize monitoring/manifests | kubeconform -strict -summary -
+          kubectl kustomize argocd/apps | kubeconform -ignore-missing-schemas -summary -

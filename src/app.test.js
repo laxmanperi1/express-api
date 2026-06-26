@@ -1,7 +1,7 @@
-const { test, describe } = require('node:test');
+const { test, describe, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { app } = require('./app');
+const { app, markReady, markNotReady } = require('./app');
 
 function request(path) {
   return new Promise((resolve, reject) => {
@@ -23,10 +23,33 @@ function request(path) {
 }
 
 describe('express-api', () => {
-  test('GET /health returns ok', async () => {
+  beforeEach(() => {
+    markReady();
+  });
+
+  test('GET /health returns ok when ready', async () => {
     const { status, body } = await request('/health');
     assert.equal(status, 200);
     assert.match(body, /"status":"ok"/);
+  });
+
+  test('GET /health/live returns alive', async () => {
+    const { status, body } = await request('/health/live');
+    assert.equal(status, 200);
+    assert.match(body, /"status":"alive"/);
+  });
+
+  test('GET /health/ready returns 503 when not ready', async () => {
+    markNotReady();
+    const { status, body } = await request('/health/ready');
+    assert.equal(status, 503);
+    assert.match(body, /"status":"not_ready"/);
+  });
+
+  test('GET /health/ready returns ready when marked ready', async () => {
+    const { status, body } = await request('/health/ready');
+    assert.equal(status, 200);
+    assert.match(body, /"status":"ready"/);
   });
 
   test('GET /api returns welcome message', async () => {

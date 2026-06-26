@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: express-api-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  express-api-dashboard.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "graphTooltip": 0,
+      "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "reqps" } },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "id": 1,
+          "targets": [
+            {
+              "expr": "sum(rate(process_cpu_seconds_total{namespace=\"express-api\"}[5m]))",
+              "legendFormat": "CPU usage"
+            }
+          ],
+          "title": "Express API CPU",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "fieldConfig": { "defaults": { "unit": "bytes" } },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "id": 2,
+          "targets": [
+            {
+              "expr": "sum(process_resident_memory_bytes{namespace=\"express-api\"})",
+              "legendFormat": "Memory"
+            }
+          ],
+          "title": "Express API Memory",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+          "id": 3,
+          "targets": [
+            {
+              "expr": "up{namespace=\"express-api\", service=\"express-api\"}",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "title": "Express API Up",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["express-api"],
+      "title": "Express API",
+      "uid": "express-api",
+      "version": 1
+    }
