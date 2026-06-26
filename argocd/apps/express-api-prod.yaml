@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: express-api
+  name: express-api-prod
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -12,17 +12,16 @@ spec:
   source:
     repoURL: __GIT_REPO_URL__
     targetRevision: main
-    path: deploy/overlays/minikube
+    path: deploy/overlays/prod
   destination:
     server: https://kubernetes.default.svc
-    namespace: express-api
+    namespace: express-api-prod
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - ApplyOutOfSyncOnly=false
     retry:
       limit: 5
       backoff:

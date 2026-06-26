@@ -10,15 +10,15 @@ resources:
   - service.yaml
   - pdb.yaml
   - networkpolicy.yaml
-  - certificate.yaml
-  - ingress.yaml
 
 labels:
   - pairs:
       app.kubernetes.io/name: express-api
       app.kubernetes.io/part-of: express-api
-      app.kubernetes.io/version: "1.0.0"
     includeSelectors: true
+  - pairs:
+      app.kubernetes.io/version: "1.0.0"
+    includeSelectors: false
 
 commonAnnotations:
   argocd.argoproj.io/sync-wave: "2"

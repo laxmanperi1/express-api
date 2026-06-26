@@ -61,6 +61,7 @@ jobs:
 
       - name: Validate Kubernetes manifests
         run: |
-          kubectl kustomize deploy/overlays/minikube | kubeconform -strict -summary -
+          kubectl kustomize deploy/overlays/dev | kubeconform -strict -summary -
+          kubectl kustomize deploy/overlays/prod | kubeconform -strict -summary -
           kubectl kustomize monitoring/manifests | kubeconform -strict -summary -
           kubectl kustomize argocd/apps | kubeconform -ignore-missing-schemas -summary -

@@ -3,17 +3,25 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ingress.yaml
+  - certificate.yaml
+
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
 
 images:
   - name: express-api
     newName: express-api
     newTag: "1.0.0"
 
+replicas:
+  - name: express-api
+    count: 2
+
 patches:
-  - target:
+  - path: patches/deployment.yaml
+    target:
       kind: Deployment
       name: express-api
-    patch: |
-      - op: replace
-        path: /spec/template/spec/containers/0/imagePullPolicy
-        value: IfNotPresent

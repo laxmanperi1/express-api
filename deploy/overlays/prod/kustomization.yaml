@@ -1,22 +1,33 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: express-api-prod
+
 resources:
   - ../../base
+  - ingress.yaml
+  - certificate.yaml
+
+labels:
+  - pairs:
+      environment: prod
+    includeSelectors: false
 
 images:
   - name: express-api
     newName: REPLACE_ECR_REGISTRY/express-api
     newTag: "1.0.0"
 
+replicas:
+  - name: express-api
+    count: 3
+
 patches:
-  - target:
-      kind: Ingress
+  - path: patches/deployment.yaml
+    target:
+      kind: Deployment
       name: express-api
-    patch: |
-      - op: replace
-        path: /spec/rules/0/host
-        value: api.example.com
-      - op: replace
-        path: /spec/tls/0/hosts/0
-        value: api.example.com
+  - path: patches/pdb.yaml
+    target:
+      kind: PodDisruptionBudget
+      name: express-api

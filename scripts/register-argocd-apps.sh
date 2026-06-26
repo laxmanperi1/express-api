@@ -31,14 +31,14 @@ stringData:
 EOF
 
 echo "==> Applying ArgoCD Applications..."
-for app in express-api.yaml monitoring-stack.yaml monitoring-config.yaml; do
+for app in express-api-dev.yaml express-api-prod.yaml monitoring-stack.yaml monitoring-config.yaml; do
   render "${ROOT_DIR}/argocd/apps/${app}" | kubectl apply -f -
 done
 
 render "${ROOT_DIR}/argocd/root-app.yaml" | kubectl apply -f -
 
 echo "==> Applying manifests directly (until Git repo is reachable)..."
-kubectl apply -k "${ROOT_DIR}/deploy/overlays/minikube"
+kubectl apply -k "${ROOT_DIR}/deploy/overlays/dev"
 kubectl apply -k "${ROOT_DIR}/monitoring/manifests"
 
 echo ""
